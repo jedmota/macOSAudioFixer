@@ -16,7 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var windowController : NSWindowController?
     
     @IBAction func preferencesClickEvent(_ sender: NSMenuItem) {
-        reopenWindow()
+//        reopenWindow()
     }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
@@ -37,7 +37,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        reopenWindow()
+//        reopenWindow()
+        return true
+    }
+    
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
     }
     

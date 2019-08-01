@@ -21,7 +21,7 @@ class ConfigurationView: NSView {
         
         let configsLabel = NSTextField.init()
         configsLabel.font = NSFont.systemFont(ofSize: 20, weight: .medium)
-        configsLabel.stringValue = "Auto-Selection Configuration:"
+        configsLabel.stringValue = "Auto-Selection Configuration"
         configsLabel.isEditable = false
         configsLabel.isBezeled = false
         configsLabel.backgroundColor = .clear

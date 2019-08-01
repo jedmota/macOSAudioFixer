@@ -12,10 +12,20 @@ class ViewController: NSViewController, NSMenuDelegate {
     let viewModel = ViewModel()
     let deviceListView = DeviceListView.init(frame: .zero)
     let configurationView = ConfigurationView.init(frame: .zero)
-//    var deviceViews: [DeviceRowView] = []
+    let volumeView = VolumeView.init(frame: .zero)
     
     override func loadView() {
         super.loadView()
+        
+        volumeView.onSliderChangeEvent = { [weak self] volume in
+            self?.viewModel.setVolume(scalar: volume)
+        }
+        view.addSubview(volumeView)
+        volumeView.translatesAutoresizingMaskIntoConstraints = false
+        volumeView.topAnchor.constraint(equalTo: view.topAnchor, constant: 20).isActive = true
+        volumeView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
+        volumeView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
+        volumeView.heightAnchor.constraint(greaterThanOrEqualToConstant: 0).isActive = true
         
         configurationView.setMaster(viewModel.isMaster)
         configurationView.onMasterEvent = { [weak self] master in
@@ -26,7 +36,7 @@ class ViewController: NSViewController, NSMenuDelegate {
         }
         view.addSubview(configurationView)
         configurationView.translatesAutoresizingMaskIntoConstraints = false
-        configurationView.topAnchor.constraint(equalTo: view.topAnchor, constant: 20).isActive = true
+        configurationView.topAnchor.constraint(equalTo: volumeView.bottomAnchor, constant: 20).isActive = true
         configurationView.leadingAnchor.constraint(equalTo: view.leadingAnchor).isActive = true
         configurationView.trailingAnchor.constraint(equalTo: view.trailingAnchor).isActive = true
         configurationView.heightAnchor.constraint(greaterThanOrEqualToConstant: 0).isActive = true
@@ -56,6 +66,9 @@ class ViewController: NSViewController, NSMenuDelegate {
                 break
             case .configsChanged:
                 self?.reloadSequenceConfigsLabels()
+                break
+            case .volumeChanged(let scalar):
+                self?.volumeView.setValue(scalar)
                 break
             }
         }

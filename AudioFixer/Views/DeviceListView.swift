@@ -16,7 +16,7 @@ class DeviceListView: NSView {
         
         let devicesLabel = NSTextField.init()
         devicesLabel.font = NSFont.systemFont(ofSize: 20, weight: .medium)
-        devicesLabel.stringValue = "Devices:"
+        devicesLabel.stringValue = "Devices"
         devicesLabel.isEditable = false
         devicesLabel.isBezeled = false
         devicesLabel.backgroundColor = .clear
