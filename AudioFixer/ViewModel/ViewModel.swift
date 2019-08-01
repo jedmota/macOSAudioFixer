@@ -11,6 +11,7 @@ class ViewModel {
     
     let deviceInputSelectionSignal = SignalStream<AudioDevice>.init(description: "Input Device Selected", strategy: .warm(upTo: 1))
     let deviceOutputSelectionSignal = SignalStream<AudioDevice>.init(description: "Output Device Selected", strategy: .warm(upTo: 1))
+    let volumeOutputSignal = SignalStream<Float>.init(description: "Volume Output selection", strategy: .warm(upTo: 1))
     
     var autoSelection: Bool = true
     var devices: [AudioDevice] = []
@@ -24,6 +25,9 @@ class ViewModel {
         }
         set {
             UserDefaultsWrapper.setMaster(newValue)
+            if newValue {
+                autoselectDevices()
+            }
         }
     }
     
@@ -40,6 +44,7 @@ class ViewModel {
         case devicesChanged(devices: [AudioDevice])
         case configsClean
         case configsChanged
+        case volumeChanged(scalar: Float)
     }
     
     init() {
@@ -68,6 +73,10 @@ class ViewModel {
             self?.devices = devices
             self?.actionsCallback?(.devicesChanged(devices: devices))
             self?.autoselectDevices()
+        }
+        AudioService.volumeOutputSignal.subscribe(on: self) { [weak self] volume in
+            NSLog("volume: \(volume)")
+            self?.actionsCallback?(.volumeChanged(scalar: volume))
         }
     }
     
@@ -135,5 +144,9 @@ class ViewModel {
     func clearConfigs() {
         UserDefaultsWrapper.clearData()
         actionsCallback?(.configsClean)
+    }
+    
+    func setVolume(scalar: Float) {
+        AudioService.sharedInstance.setOutputDeviceVolume(scalar)
     }
 }

@@ -21,76 +21,15 @@ class AudioService {
     static let devicesSignal = SignalStream<[AudioDevice]>.init(description: "Devices", strategy: .warm(upTo: 1))
     static let deviceInputSelectionSignal = SignalStream<AudioDevice>.init(description: "Input Device Selected", strategy: .warm(upTo: 1))
     static let deviceOutputSelectionSignal = SignalStream<AudioDevice>.init(description: "Output Device Selected", strategy: .warm(upTo: 1))
+    static let volumeOutputSignal = SignalStream<Float>.init(description: "Volume Output selection", strategy: .warm(upTo: 1))
     
-    struct AudioAddress {
+    init() {
+        self.outputDevice = AudioDevice.init(type: .output, id: 1, name: "")
+        self.inputDevice = AudioDevice.init(type: .output, id: 1, name: "")
         
-        static var outputDevice = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-                                                      mScope: kAudioObjectPropertyScopeGlobal,
-                                                      mElement: kAudioObjectPropertyElementMaster)
-        static var inputDevice = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultInputDevice,
-                                                     mScope: kAudioObjectPropertyScopeGlobal,
-                                                     mElement: kAudioObjectPropertyElementMaster)
-        
-        static var devices = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDevices,
-                                                 mScope: kAudioObjectPropertyScopeGlobal,
-                                                 mElement: kAudioObjectPropertyElementMaster)
-        
-        struct DeviceProperties {
-            static var deviceName = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyDeviceNameCFString,
-                                                               mScope: kAudioObjectPropertyScopeGlobal,
-                                                               mElement: kAudioObjectPropertyElementMaster)
-            static var streamConfiguration = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreamConfiguration,
-                                                                        mScope: kAudioDevicePropertyScopeInput,
-                                                                        mElement: kAudioObjectPropertyElementMaster)
-        }
-    }
-    
-    struct AudioListener {
-        static var devices: AudioObjectPropertyListenerProc = { audioObjectId, int, pointer, rawpointer in
-            AudioService.devicesSignal.fire(AudioService.sharedInstance.devices)
-            return 0
-        }
-        
-        static var output: AudioObjectPropertyListenerProc = { audioObjectId, int, pointer, rawpointer in
-            
-            var deviceId = AudioDeviceID()
-            var size = UInt32(0)
-            AudioObjectGetPropertyDataSize(audioObjectId, pointer, 0, nil, &size)
-            AudioObjectGetPropertyData(audioObjectId, pointer, 0, nil, &size, &deviceId)
-            
-            let name: String = {
-                var name: CFString = "" as CFString
-                var address = AudioAddress.DeviceProperties.deviceName
-                var size = UInt32(0)
-                AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
-                AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &name)
-                return name as String
-            }()
-            
-            let audioDevice = AudioDevice.init(type: .output, id: deviceId, name: name)
-            AudioService.deviceOutputSelectionSignal.fire(audioDevice)
-            return 0
-        }
-        
-        static var input: AudioObjectPropertyListenerProc = { audioObjectId, int, pointer, rawpointer in
-            
-            var deviceId = AudioDeviceID()
-            var size = UInt32(0)
-            AudioObjectGetPropertyDataSize(audioObjectId, pointer, 0, nil, &size)
-            AudioObjectGetPropertyData(audioObjectId, pointer, 0, nil, &size, &deviceId)
-            
-            let name: String = {
-                var name: CFString = "" as CFString
-                var address = AudioAddress.DeviceProperties.deviceName
-                var size = UInt32(0)
-                AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
-                AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &name)
-                return name as String
-            }()
-            
-            let audioDevice = AudioDevice.init(type: .input, id: deviceId, name: name)
-            AudioService.deviceInputSelectionSignal.fire(audioDevice)
-            return 0
+        defer {
+            self.inputDevice = self.getCurrentInputDevice()
+            self.outputDevice = self.getCurrentOutputDevice()
         }
     }
     
@@ -102,9 +41,6 @@ class AudioService {
         AudioService.devicesSignal.fire(devices)
         AudioService.deviceInputSelectionSignal.fire(inputDevice)
         AudioService.deviceOutputSelectionSignal.fire(outputDevice)
-//        print("Devices:", devices)
-//        NSLog("output: \(outputDevice)")
-//        NSLog("input: \(inputDevice)")
     }
     
     func stop() {
@@ -114,6 +50,36 @@ class AudioService {
     }
     
     var outputDevice: AudioDevice {
+        didSet {
+            updateVolume()
+            setVolumeListeners(deviceId: outputDevice.id)
+        }
+    }
+    
+    var inputDevice: AudioDevice
+    
+    func getCurrentInputDevice() -> AudioDevice {
+        
+        var deviceId = AudioDeviceID()
+        let objectID = AudioObjectID(kAudioObjectSystemObject)
+        var address = AudioAddress.inputDevice
+        var size = UInt32(0)
+        AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &size)
+        AudioObjectGetPropertyData(objectID, &address, 0, nil, &size, &deviceId)
+        
+        let name: String = {
+            var name: CFString = "" as CFString
+            var address = AudioAddress.DeviceProperties.deviceName
+            var size = UInt32(0)
+            AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
+            AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &name)
+            return name as String
+        }()
+        
+        return AudioDevice.init(type: .input, id: deviceId, name: name)
+    }
+    
+    func getCurrentOutputDevice() -> AudioDevice {
         
         var deviceId = AudioDeviceID()
         let objectID = AudioObjectID(kAudioObjectSystemObject)
@@ -134,25 +100,72 @@ class AudioService {
         return AudioDevice.init(type: .output, id: deviceId, name: name)
     }
     
-    var inputDevice: AudioDevice {
+    func setVolumeListeners(deviceId: UInt32) {
         
-        var deviceId = AudioDeviceID()
-        let objectID = AudioObjectID(kAudioObjectSystemObject)
-        var address = AudioAddress.inputDevice
-        var size = UInt32(0)
-        AudioObjectGetPropertyDataSize(objectID, &address, 0, nil, &size)
-        AudioObjectGetPropertyData(objectID, &address, 0, nil, &size, &deviceId)
+        var data: UInt32 = 0
+        var address = AudioAddress.DeviceProperties.Volume.masterOutputVolume
+        AudioObjectAddPropertyListener(deviceId, &address, AudioListener.masterChannelVolume, &data)
+        var leftData: UInt32 = 0
+        var leftAddress = AudioAddress.DeviceProperties.Volume.leftOutputVolume
+        leftAddress.mElement = AudioAddress.DeviceProperties.Volume.leftChannel
+        AudioObjectAddPropertyListener(deviceId, &leftAddress, AudioListener.otherChannelVolume, &leftData)
+        var rightData: UInt32 = 0
+        var rightAddress = AudioAddress.DeviceProperties.Volume.rightOutputVolume
+        rightAddress.mElement = AudioAddress.DeviceProperties.Volume.rightChannel
+        AudioObjectAddPropertyListener(deviceId, &rightAddress, AudioListener.otherChannelVolume, &rightData)
+    }
+    
+    func removeVolumeListeners(deviceId: UInt32) {
         
-        let name: String = {
-            var name: CFString = "" as CFString
-            var address = AudioAddress.DeviceProperties.deviceName
+        var data: UInt32 = 0
+        var address = AudioAddress.DeviceProperties.Volume.masterOutputVolume
+        AudioObjectAddPropertyListener(deviceId, &address, AudioListener.masterChannelVolume, &data)
+        var leftData: UInt32 = 0
+        var leftAddress = AudioAddress.DeviceProperties.Volume.leftOutputVolume
+        leftAddress.mElement = AudioAddress.DeviceProperties.Volume.leftChannel
+        AudioObjectAddPropertyListener(deviceId, &leftAddress, AudioListener.otherChannelVolume, &leftData)
+        var rightData: UInt32 = 0
+        var rightAddress = AudioAddress.DeviceProperties.Volume.rightOutputVolume
+        rightAddress.mElement = AudioAddress.DeviceProperties.Volume.rightChannel
+        AudioObjectAddPropertyListener(deviceId, &rightAddress, AudioListener.otherChannelVolume, &rightData)
+    }
+    
+    func updateVolume() {
+        
+        let deviceId = outputDevice.id
+        
+        let masterVolume: Float32 = {
+            
+            var volume: Float32 = 0
+            var address = AudioAddress.DeviceProperties.Volume.masterOutputVolume
             var size = UInt32(0)
             AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
-            AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &name)
-            return name as String
+            AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &volume)
+            return volume
         }()
-        
-        return AudioDevice.init(type: .input, id: deviceId, name: name)
+        let leftVolume: Float32 = {
+            
+            var volume: Float32 = 0
+            var address = AudioAddress.DeviceProperties.Volume.leftOutputVolume
+            var size = UInt32(0)
+            AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
+            AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &volume)
+            return volume
+        }()
+        let rightVolume: Float32 = {
+            
+            var volume: Float32 = 0
+            var address = AudioAddress.DeviceProperties.Volume.rightOutputVolume
+            var size = UInt32(0)
+            AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
+            AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &volume)
+            return volume
+        }()
+        AudioService.volumeOutputSignal.fire(AudioService.getVolume(masterVolume: masterVolume, rightVolume: rightVolume, leftVolume: leftVolume))
+    }
+    
+    fileprivate static func getVolume(masterVolume: Float, rightVolume: Float, leftVolume: Float) -> Float {
+        return max(masterVolume, rightVolume, leftVolume)
     }
     
     var devices: [AudioDevice] {
@@ -205,12 +218,113 @@ class AudioService {
     
     // MARK: Private method
     func setOutputDevice(id: inout AudioDeviceID) {
+        
+        removeVolumeListeners(deviceId: outputDevice.id)
         AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &AudioAddress.outputDevice, 0, nil, UInt32(MemoryLayout<AudioDeviceID>.size), &id)
     }
     
     func setInputDevice(id: inout AudioDeviceID) {
         AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &AudioAddress.inputDevice, 0, nil, UInt32(MemoryLayout<AudioDeviceID>.size), &id)
-//        UserDefaults.standard.set(id, forKey: SuohaiDefaultKeys.audioInputDeviceID)
+    }
+    
+    func setOutputDeviceVolume(_ scalar: Float32) {
+        var value = scalar
+        AudioObjectSetPropertyData(outputDevice.id, &AudioAddress.DeviceProperties.Volume.masterOutputVolume, 0, nil, UInt32(MemoryLayout<Float32>.size), &value)
+        AudioObjectSetPropertyData(outputDevice.id, &AudioAddress.DeviceProperties.Volume.leftOutputVolume, 0, nil, UInt32(MemoryLayout<Float32>.size), &value)
+        AudioObjectSetPropertyData(outputDevice.id, &AudioAddress.DeviceProperties.Volume.rightOutputVolume, 0, nil, UInt32(MemoryLayout<Float32>.size), &value)
+    }
+    
+    struct AudioListener {
+        static var devices: AudioObjectPropertyListenerProc = { audioObjectId, int, pointer, rawpointer in
+            AudioService.devicesSignal.fire(AudioService.sharedInstance.devices)
+            return 0
+        }
+        
+        static var output: AudioObjectPropertyListenerProc = { audioObjectId, int, pointer, rawpointer in
+            
+            var deviceId = AudioDeviceID()
+            var size = UInt32(0)
+            AudioObjectGetPropertyDataSize(audioObjectId, pointer, 0, nil, &size)
+            AudioObjectGetPropertyData(audioObjectId, pointer, 0, nil, &size, &deviceId)
+            
+            let name: String = {
+                var name: CFString = "" as CFString
+                var address = AudioAddress.DeviceProperties.deviceName
+                var size = UInt32(0)
+                AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
+                AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &name)
+                return name as String
+            }()
+            
+            let audioDevice = AudioDevice.init(type: .output, id: deviceId, name: name)
+            AudioService.deviceOutputSelectionSignal.fire(audioDevice)
+            AudioService.sharedInstance.outputDevice = audioDevice
+            return 0
+        }
+        
+        static var input: AudioObjectPropertyListenerProc = { audioObjectId, int, pointer, rawpointer in
+            
+            var deviceId = AudioDeviceID()
+            var size = UInt32(0)
+            AudioObjectGetPropertyDataSize(audioObjectId, pointer, 0, nil, &size)
+            AudioObjectGetPropertyData(audioObjectId, pointer, 0, nil, &size, &deviceId)
+            
+            let name: String = {
+                var name: CFString = "" as CFString
+                var address = AudioAddress.DeviceProperties.deviceName
+                var size = UInt32(0)
+                AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
+                AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &name)
+                return name as String
+            }()
+            
+            let audioDevice = AudioDevice.init(type: .input, id: deviceId, name: name)
+            AudioService.deviceInputSelectionSignal.fire(audioDevice)
+            AudioService.sharedInstance.inputDevice = audioDevice
+            return 0
+        }
+        
+        static var masterChannelVolume: AudioObjectPropertyListenerProc = { audioObjectId, int, pointer, rawpointer in
+            
+            var volume:Float32 = 0.5
+            var size = UInt32(0)
+            AudioObjectGetPropertyDataSize(audioObjectId, pointer, 0, nil, &size)
+            AudioObjectGetPropertyData(audioObjectId, pointer, 0, nil, &size, &volume)
+            AudioService.volumeOutputSignal.fire(volume)
+            NSLog("masterVolume: \(volume)")
+            return 0
+        }
+        
+        static var otherChannelVolume: AudioObjectPropertyListenerProc = { audioObjectId, int, pointer, rawpointer in
+            
+            var volume:Float32 = 0.5
+            var size = UInt32(0)
+            AudioObjectGetPropertyDataSize(audioObjectId, pointer, 0, nil, &size)
+            AudioObjectGetPropertyData(audioObjectId, pointer, 0, nil, &size, &volume)
+            
+            var deviceId = AudioService.sharedInstance.outputDevice.id
+            let leftVolume: Float32 = {
+                var volume: Float32 = 0
+                var address = AudioAddress.DeviceProperties.Volume.leftOutputVolume
+                var size = UInt32(0)
+                AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
+                AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &volume)
+                return volume
+            }()
+            let rightVolume: Float32 = {
+                
+                var volume: Float32 = 0
+                var address = AudioAddress.DeviceProperties.Volume.rightOutputVolume
+                var size = UInt32(0)
+                AudioObjectGetPropertyDataSize(deviceId, &address, 0, nil, &size)
+                AudioObjectGetPropertyData(deviceId, &address, 0, nil, &size, &volume)
+                return volume
+            }()
+            NSLog("leftVolume: \(leftVolume) rightVolume: \(rightVolume)")
+            AudioService.volumeOutputSignal.fire(max(leftVolume, rightVolume))
+            
+            return 0
+        }
     }
     
 }

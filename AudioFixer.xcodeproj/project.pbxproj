@@ -7,9 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		36343AC322F324500021EF87 /* NSViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36343AC222F324500021EF87 /* NSViewExtensions.swift */; };
 		363A2F8222F1D939006B28C1 /* DeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363A2F8122F1D939006B28C1 /* DeviceView.swift */; };
 		363A2F8422F1E199006B28C1 /* ConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363A2F8322F1E199006B28C1 /* ConfigurationView.swift */; };
 		363A2F8622F1E1CB006B28C1 /* DeviceListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363A2F8522F1E1CB006B28C1 /* DeviceListView.swift */; };
+		363A2F8822F3136E006B28C1 /* AudioAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363A2F8722F3136E006B28C1 /* AudioAddress.swift */; };
+		363A2F8A22F31966006B28C1 /* VolumeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363A2F8922F31966006B28C1 /* VolumeView.swift */; };
 		3667602F22F0787500AB6C96 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3667602E22F0787500AB6C96 /* AppDelegate.swift */; };
 		3667603122F0787500AB6C96 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3667603022F0787500AB6C96 /* ViewController.swift */; };
 		3667603322F0787600AB6C96 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3667603222F0787600AB6C96 /* Assets.xcassets */; };
@@ -42,9 +45,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		36343AC222F324500021EF87 /* NSViewExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSViewExtensions.swift; sourceTree = "<group>"; };
 		363A2F8122F1D939006B28C1 /* DeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceView.swift; sourceTree = "<group>"; };
 		363A2F8322F1E199006B28C1 /* ConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationView.swift; sourceTree = "<group>"; };
 		363A2F8522F1E1CB006B28C1 /* DeviceListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceListView.swift; sourceTree = "<group>"; };
+		363A2F8722F3136E006B28C1 /* AudioAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAddress.swift; sourceTree = "<group>"; };
+		363A2F8922F31966006B28C1 /* VolumeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeView.swift; sourceTree = "<group>"; };
 		3667602C22F0787500AB6C96 /* AudioFixer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudioFixer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3667602E22F0787500AB6C96 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3667603022F0787500AB6C96 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -91,9 +97,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		36343AC122F3243E0021EF87 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				36343AC222F324500021EF87 /* NSViewExtensions.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
 		3667602D22F0787500AB6C96 /* AudioFixer */ = {
 			isa = PBXGroup;
 			children = (
+				36343AC122F3243E0021EF87 /* Extensions */,
 				3667606722F1921E00AB6C96 /* Database */,
 				3667606122F086C400AB6C96 /* SignalStream.swift */,
 				3667605E22F0827C00AB6C96 /* Views */,
@@ -140,6 +155,7 @@
 			isa = PBXGroup;
 			children = (
 				3667605C22F07CB300AB6C96 /* AudioDevice.swift */,
+				363A2F8722F3136E006B28C1 /* AudioAddress.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -151,6 +167,7 @@
 				363A2F8122F1D939006B28C1 /* DeviceView.swift */,
 				363A2F8322F1E199006B28C1 /* ConfigurationView.swift */,
 				363A2F8522F1E1CB006B28C1 /* DeviceListView.swift */,
+				363A2F8922F31966006B28C1 /* VolumeView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -343,9 +360,12 @@
 				3667602F22F0787500AB6C96 /* AppDelegate.swift in Sources */,
 				363A2F8222F1D939006B28C1 /* DeviceView.swift in Sources */,
 				3667606022F0828C00AB6C96 /* DeviceRowView.swift in Sources */,
+				363A2F8822F3136E006B28C1 /* AudioAddress.swift in Sources */,
 				3667606222F086C400AB6C96 /* SignalStream.swift in Sources */,
 				3667606922F1923500AB6C96 /* UserDefaultsWrapper.swift in Sources */,
 				363A2F8622F1E1CB006B28C1 /* DeviceListView.swift in Sources */,
+				36343AC322F324500021EF87 /* NSViewExtensions.swift in Sources */,
+				363A2F8A22F31966006B28C1 /* VolumeView.swift in Sources */,
 				3667605D22F07CB300AB6C96 /* AudioDevice.swift in Sources */,
 				3667605A22F07A3E00AB6C96 /* AudioService.swift in Sources */,
 				3667606522F0896000AB6C96 /* ViewModel.swift in Sources */,
